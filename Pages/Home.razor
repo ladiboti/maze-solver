@@ -7,7 +7,11 @@
     <div class="flex flex-col justify-center space-y-4 m-10">
         <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition"
                 @onclick="GenerateNewMaze">
-            New Maze
+            Generate a maze
+        </button>
+        <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition"
+                @onclick="DrawMaze">
+            Draw a maze
         </button>
         <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition"
                 @onclick="SolveMaze">
@@ -26,6 +30,17 @@
 
     private void SolveMaze()
     {
-        Console.WriteLine("clicked");
+        if (mazeGrid != null)
+        {
+            mazeGrid.SolveMaze();
+        }
+    }
+
+    private void DrawMaze()
+    {
+        if (mazeGrid != null)
+        {
+            mazeGrid.PrepareForManualDrawing();
+        }
     }
 }

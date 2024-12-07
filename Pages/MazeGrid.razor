@@ -2,10 +2,11 @@
     public int Rows { get; set; } = 20;
     public int Columns { get; set; } = 40;
     private string[,] Grid;
-    private readonly Random Random = new();
-    private HashSet<(int, int)> VisitedCells = new();
+    private bool isDrawing = false; // Állapot manuális rajzoláshoz
     private (int x, int y)? StartPoint { get; set; } = null;
     private (int x, int y)? EndPoint { get; set; } = null;
+    private HashSet<(int x, int y)> VisitedCells = new();
+    private readonly Random Random = new();
 
     protected override void OnParametersSet()
     {
@@ -18,7 +19,9 @@
         VisitedCells.Clear();
         StartPoint = null;
         EndPoint = null;
+        isDrawing = false;
 
+        // Alapértelmezett falak
         for (int i = 0; i < Rows; i++)
         {
             for (int j = 0; j < Columns; j++)
@@ -27,9 +30,11 @@
             }
         }
 
-        int startX = Random.Next(0, Rows);
-        int startY = Random.Next(0, Columns);
+        // Kezdő cella
+        int startX = Random.Next(Rows);
+        int startY = Random.Next(Columns);
         GeneratePath(startX, startY);
+
         StateHasChanged();
     }
 
@@ -37,6 +42,7 @@
     {
         VisitedCells.Add((x, y));
         Grid[x, y] = "path";
+
         var directions = new List<(int dx, int dy)>
         {
             (-2, 0), (2, 0), (0, -2), (0, 2)
@@ -46,43 +52,172 @@
         {
             int newX = x + dx;
             int newY = y + dy;
-            if (newX >= 0 && newX < Rows && newY >= 0 && newY < Columns)
+
+            if (newX >= 0 && newX < Rows && newY >= 0 && newY < Columns && !VisitedCells.Contains((newX, newY)))
             {
-                if (!VisitedCells.Contains((newX, newY)))
-                {
-                    Grid[(x + newX) / 2, (y + newY) / 2] = "path";
-                    GeneratePath(newX, newY);
-                }
+                Grid[(x + newX) / 2, (y + newY) / 2] = "path";
+                GeneratePath(newX, newY);
             }
         }
     }
 
-    public void HandleCellClick(int x, int y)
+    public void PrepareForManualDrawing()
     {
-        if (x < 0 || x >= Rows || y < 0 || y >= Columns || Grid[x, y] != "path")
+        Grid = new string[Rows, Columns];
+        for (int i = 0; i < Rows; i++)
+        {
+            for (int j = 0; j < Columns; j++)
+            {
+                Grid[i, j] = "path"; // Üres rács
+            }
+        }
+
+        StartPoint = null;
+        EndPoint = null;
+        isDrawing = true;
+        StateHasChanged();
+    }
+
+    private void HandleCellClick(int x, int y)
+    {
+        if (isDrawing)
+        {
+            // Falak rajzolása manuális módban
+            Grid[x, y] = Grid[x, y] == "wall" ? "path" : "wall";
+        }
+
+        StateHasChanged();
+    }
+
+    private void HandleCellDoubleClick(int x, int y)
+    {
+        // Kezdő- és végpont kijelölése
+        if (Grid[x, y] != "path")
             return;
 
-        // Ha nincs kezdőpont, állítsuk be
         if (StartPoint == null)
         {
             StartPoint = (x, y);
-            Console.WriteLine($"StartPoint set to: ({x}, {y})");
         }
-        // Ha van kezdőpont, de nincs végpont, állítsuk be
         else if (EndPoint == null)
         {
             EndPoint = (x, y);
-            Console.WriteLine($"EndPoint set to: ({x}, {y})");
         }
-        // Ha mindkettő be van állítva, töröljük a kijelöléseket, és kezdjük újra
         else
         {
             StartPoint = null;
             EndPoint = null;
-            Console.WriteLine("Resetting points. Please select StartPoint and EndPoint again.");
         }
 
         StateHasChanged();
+    }
+
+    public void SolveMaze()
+    {
+        if (StartPoint == null || EndPoint == null)
+        {
+            Console.WriteLine("StartPoint or EndPoint not set.");
+            return;
+        }
+
+        var path = FindPath(StartPoint.Value, EndPoint.Value);
+        if (path == null)
+        {
+            Console.WriteLine("No path found.");
+            return;
+        }
+
+        foreach (var (x, y) in path)
+        {
+            Grid[x, y] = "solution";
+        }
+
+        StateHasChanged();
+    }
+
+    private List<(int x, int y)> FindPath((int x, int y) start, (int x, int y) end)
+    {
+        var openSet = new PriorityQueue<(int x, int y), int>();
+        var cameFrom = new Dictionary<(int x, int y), (int x, int y)?>();
+        var gScore = new Dictionary<(int x, int y), int>();
+        var fScore = new Dictionary<(int x, int y), int>();
+
+        foreach (var row in Enumerable.Range(0, Rows))
+        {
+            foreach (var col in Enumerable.Range(0, Columns))
+            {
+                gScore[(row, col)] = int.MaxValue;
+                fScore[(row, col)] = int.MaxValue;
+            }
+        }
+
+        gScore[start] = 0;
+        fScore[start] = Heuristic(start, end);
+        openSet.Enqueue(start, fScore[start]);
+
+        while (openSet.Count > 0)
+        {
+            var current = openSet.Dequeue();
+
+            if (current == end)
+            {
+                return ReconstructPath(cameFrom, current);
+            }
+
+            foreach (var neighbor in GetNeighbors(current))
+            {
+                var tentativeGScore = gScore[current] + 1;
+
+                if (tentativeGScore < gScore[neighbor])
+                {
+                    cameFrom[neighbor] = current;
+                    gScore[neighbor] = tentativeGScore;
+                    fScore[neighbor] = gScore[neighbor] + Heuristic(neighbor, end);
+
+                    if (!openSet.UnorderedItems.Any(x => x.Element == neighbor))
+                    {
+                        openSet.Enqueue(neighbor, fScore[neighbor]);
+                    }
+                }
+            }
+        }
+
+        return null; // Útvonal nem található
+    }
+
+    private int Heuristic((int x, int y) a, (int x, int y) b)
+    {
+        return Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y); // Manhattan távolság
+    }
+
+    private IEnumerable<(int x, int y)> GetNeighbors((int x, int y) cell)
+    {
+        var directions = new List<(int dx, int dy)>
+        {
+            (-1, 0), (1, 0), (0, -1), (0, 1)
+        };
+
+        foreach (var (dx, dy) in directions)
+        {
+            var nx = cell.x + dx;
+            var ny = cell.y + dy;
+            if (nx >= 0 && nx < Rows && ny >= 0 && ny < Columns && Grid[nx, ny] != "wall")
+            {
+                yield return (nx, ny);
+            }
+        }
+    }
+
+    private List<(int x, int y)> ReconstructPath(Dictionary<(int x, int y), (int x, int y)?> cameFrom, (int x, int y) current)
+    {
+        var path = new List<(int x, int y)>();
+        while (cameFrom.ContainsKey(current))
+        {
+            path.Add(current);
+            current = cameFrom[current].Value;
+        }
+        path.Reverse();
+        return path;
     }
 }
 
@@ -95,10 +230,12 @@
             var col = j;
 
             <div class="w-8 h-8 
-                @(Grid[row, col] == "path" ? "bg-retro-background hover:bg-retro-highlight transition" : "bg-retro-primary")
-                @(StartPoint == (row, col) ? "bg-retro-highlight" : "")
-                @(EndPoint == (row, col) ? "bg-retro-highlight" : "")"
-                @onclick="() => HandleCellClick(row, col)">
+                @(Grid[row, col] == "path" ? "bg-retro-background hover:bg-retro-secondary transition" : "bg-retro-primary")
+                @(Grid[row, col] == "solution" ? "bg-retro-secondary" : "")
+                @(StartPoint == (row, col) ? "bg-retro-secondary" : "")
+                @(EndPoint == (row, col) ? "bg-retro-secondary" : "")"
+                @onclick="() => HandleCellClick(row, col)"
+                @ondblclick="() => HandleCellDoubleClick(row, col)">
             </div>
         }
     }
