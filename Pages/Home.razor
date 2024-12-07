@@ -1,27 +1,26 @@
 ﻿@page "/"
+@inject IJSRuntime JSRuntime
 
 <PageTitle>MazeSolverApp</PageTitle>
 
-<div class="bg-retro-background text-retro-highlight min-h-screen flex flex-col items-center justify-center space-y-8">
-    <h1 class="text-3xl font-bold">Tailwind Retro Colors Test</h1>
-
-    <!-- Primary Color -->
-    <div class="bg-retro-primary text-white p-4 rounded-lg shadow-lg">
-        Primary Color: <span class="font-bold">#F30067</span>
-    </div>
-
-    <!-- Secondary Color -->
-    <div class="bg-retro-secondary text-white p-4 rounded-lg shadow-lg">
-        Secondary Color: <span class="font-bold">#00D1CD</span>
-    </div>
-
-    <!-- Highlight Color -->
-    <div class="bg-retro-highlight text-black p-4 rounded-lg shadow-lg">
-        Highlight Color: <span class="font-bold">#EAEAEA</span>
-    </div>
-
-    <!-- Background Color -->
-    <div class="bg-retro-background text-retro-primary p-4 rounded-lg shadow-lg">
-        Background Color: <span class="font-bold">#444444</span>
+<div class="bg-retro-background text-retro-highlight min-h-screen flex items-center justify-center space-y-8">
+    <MazeGrid @ref="mazeGrid" Rows="15" Columns="30" />
+    <div class="flex flex-col justify-center space-y-4 m-10">
+        <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition"
+                @onclick="GenerateNewMaze">
+            New Maze
+        </button>
+        <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition">
+            Solve
+        </button>
     </div>
 </div>
+
+@code {
+    private MazeGrid mazeGrid;
+
+    private void GenerateNewMaze()
+    {
+        mazeGrid.GenerateMaze();
+    }
+}
