@@ -1,25 +1,24 @@
 @code {
-    [Parameter]
-    public int Rows { get; set; } = 15;
-    
-    [Parameter]
-    public int Columns { get; set; } = 30;
-    
+    public int Rows { get; set; } = 20;
+    public int Columns { get; set; } = 40;
     private string[,] Grid;
     private readonly Random Random = new();
     private HashSet<(int, int)> VisitedCells = new();
+    private (int x, int y)? StartPoint { get; set; } = null;
+    private (int x, int y)? EndPoint { get; set; } = null;
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
         GenerateMaze();
     }
 
     public void GenerateMaze()
     {
-        // Teljes rács inicializálása fallal
         Grid = new string[Rows, Columns];
         VisitedCells.Clear();
-        
+        StartPoint = null;
+        EndPoint = null;
+
         for (int i = 0; i < Rows; i++)
         {
             for (int j = 0; j < Columns; j++)
@@ -28,47 +27,62 @@
             }
         }
 
-        // Kezdőpont kiválasztása
         int startX = Random.Next(0, Rows);
         int startY = Random.Next(0, Columns);
-        
-        // Útvonal generálása
         GeneratePath(startX, startY);
-
         StateHasChanged();
     }
 
     private void GeneratePath(int x, int y)
     {
-        // Jelenlegi cella látogatottá jelölése
         VisitedCells.Add((x, y));
         Grid[x, y] = "path";
-
-        // Véletlenszerű irányok
-        var directions = new List<(int dx, int dy)> 
-        { 
-            (-2, 0), (2, 0), (0, -2), (0, 2) 
+        var directions = new List<(int dx, int dy)>
+        {
+            (-2, 0), (2, 0), (0, -2), (0, 2)
         }.OrderBy(_ => Random.Next()).ToList();
 
         foreach (var (dx, dy) in directions)
         {
             int newX = x + dx;
             int newY = y + dy;
-
-            // Koordináták ellenőrzése
             if (newX >= 0 && newX < Rows && newY >= 0 && newY < Columns)
             {
-                // Ha a cél cella még nem látogatott
                 if (!VisitedCells.Contains((newX, newY)))
                 {
-                    // Köztes fal eltávolítása
                     Grid[(x + newX) / 2, (y + newY) / 2] = "path";
-                    
-                    // Rekurzív útvonal generálás
                     GeneratePath(newX, newY);
                 }
             }
         }
+    }
+
+    public void HandleCellClick(int x, int y)
+    {
+        if (x < 0 || x >= Rows || y < 0 || y >= Columns || Grid[x, y] != "path")
+            return;
+
+        // Ha nincs kezdőpont, állítsuk be
+        if (StartPoint == null)
+        {
+            StartPoint = (x, y);
+            Console.WriteLine($"StartPoint set to: ({x}, {y})");
+        }
+        // Ha van kezdőpont, de nincs végpont, állítsuk be
+        else if (EndPoint == null)
+        {
+            EndPoint = (x, y);
+            Console.WriteLine($"EndPoint set to: ({x}, {y})");
+        }
+        // Ha mindkettő be van állítva, töröljük a kijelöléseket, és kezdjük újra
+        else
+        {
+            StartPoint = null;
+            EndPoint = null;
+            Console.WriteLine("Resetting points. Please select StartPoint and EndPoint again.");
+        }
+
+        StateHasChanged();
     }
 }
 
@@ -77,7 +91,15 @@
     {
         @for (int j = 0; j < Columns; j++)
         {
-            <div class="w-8 h-8 @(Grid[i, j] == "path" ? "bg-retro-background" : "bg-retro-primary") border border-retro-primary"></div>
+            var row = i;
+            var col = j;
+
+            <div class="w-8 h-8 
+                @(Grid[row, col] == "path" ? "bg-retro-background hover:bg-retro-highlight transition" : "bg-retro-primary")
+                @(StartPoint == (row, col) ? "bg-retro-highlight" : "")
+                @(EndPoint == (row, col) ? "bg-retro-highlight" : "")"
+                @onclick="() => HandleCellClick(row, col)">
+            </div>
         }
     }
 </div>

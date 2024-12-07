@@ -1,16 +1,16 @@
 ﻿@page "/"
-@inject IJSRuntime JSRuntime
 
 <PageTitle>MazeSolverApp</PageTitle>
 
 <div class="bg-retro-background text-retro-highlight min-h-screen flex items-center justify-center space-y-8">
-    <MazeGrid @ref="mazeGrid" Rows="15" Columns="30" />
+    <MazeGrid @ref="mazeGrid"/>
     <div class="flex flex-col justify-center space-y-4 m-10">
         <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition"
                 @onclick="GenerateNewMaze">
             New Maze
         </button>
-        <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition">
+        <button class="p-3 bg-retro-background border-4 border-retro-primary text-retro-primary font-bold text-3xl flex items-center justify-center hover:bg-retro-primary hover:text-retro-background transition"
+                @onclick="SolveMaze">
             Solve
         </button>
     </div>
@@ -22,5 +22,10 @@
     private void GenerateNewMaze()
     {
         mazeGrid.GenerateMaze();
+    }
+
+    private void SolveMaze()
+    {
+        Console.WriteLine("clicked");
     }
 }
