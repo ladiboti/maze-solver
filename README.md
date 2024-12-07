@@ -25,3 +25,5 @@ A Blazor-based interactive maze solver application developed as a semester-end p
 
 - **Responsive Design**:
   - Works seamlessly across devices, including desktops and tablets.
+
+I speedruned this in one day, I hope that I'll never use Blazor again :))))
